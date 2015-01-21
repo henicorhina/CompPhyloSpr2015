@@ -90,6 +90,10 @@ seqConvert(mySequence) # calling the function seqConvert with mySequence
 # to the end of the lists, so this is to remove that
 aminoSeq = aminoSeq[0:(len(mySequence)/3)] 
 
+# removes the * from the amino acid sequence
+while "*" in aminoSeq:
+    aminoSeq.remove("*")
+
 # I had this line of code because the dictionary was initially lower case, but I left it here just in case.
 # codonSeq = [item.lower() for item in codonSeq] # convert list to lower case to work with dictionary
 
