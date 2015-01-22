@@ -15,6 +15,9 @@ Assignment 1 for Computational Phylogenetics at LSU
 # The sequence lenth was not divisible by 3, so i deleted the last two codons.
 mySequence = "aaaagctatcgggcccataccccaaacatgttggttaaaccccttcctttgctaattaatccttacgctatctccatcattatctccagcttagccctgggaactattactaccctatcaagctaccattgaatgttagcctgaatcggccttgaaattaacactctagcaattattcctctaataactaaaacacctcaccctcgagcaattgaagccgcaactaaatacttcttaacacaagcagcagcatctgccttaattctatttgcaagcacaatgaatgcttgactactaggagaatgagccattaatacccacattagttatattccatctatcctcctctccatcgccctagcgataaaactgggaattgccccctttcacttctgacttcctgaagtcctacaaggattaaccttacaaaccgggttaatcttatcaacatgacaaaaaatcgccccaatagttttacttattcaactatcccaatctgtagaccttaatctaatattattcctcggcttactttctacagttattggcggatgaggaggtattaaccaaacccaaattcgtaaagtcctagcattttcatcaatcgcccacctaggc"
 
+# use this sequence for converting directly from DNA to AA
+mySequence2 = "aaaagctatcgggcccataccccaaacatgttggttaaaccccttcctttgctaattaatccttacgctatctccatcattatctccagcttagccctgggaactattactaccctatcaagctaccattgaatgttagcctgaatcggccttgaaattaacactctagcaattattcctctaataactaaaacacctcaccctcgagcaattgaagccgcaactaaatacttcttaacacaagcagcagcatctgccttaattctatttgcaagcacaatgaatgcttgactactaggagaatgagccattaatacccacattagttatattccatctatcctcctctccatcgccctagcgataaaactgggaattgccccctttcacttctgacttcctgaagtcctacaaggattaaccttacaaaccgggttaatcttatcaacatgacaaaaaatcgccccaatagttttacttattcaactatcccaatctgtagaccttaatctaatattattcctcggcttactttctacagttattggcggatgaggaggtattaaccaaacccaaattcgtaaagtcctagcattttcatcaatcgcccacctaggc"
+
 # this prints the length of the DNA sequence
 print "the length of the sequence is", (len(mySequence)), "nucleotides" 
 
@@ -47,8 +50,10 @@ print"the 14th codon is: ", mySequence[39:42], "\n" # prints the 14th codon.
 mySequence = mySequence.upper()
 #print mySequence
 
+mySequence2 = mySequence2.upper()
+
 # dictionary to store the Vertebrate mitochondrial genetic code
-codonDict = {"UUU":"F","UCU":"S","UAU":"Y","UGU":"C",
+codonDictRNA = {"UUU":"F","UCU":"S","UAU":"Y","UGU":"C",
 "UUC":"F","UCC":"S","UAC":"Y","UGC":"C",
 "UUA":"L","UCA":"S","UAA":"*","UGA":"W",
 "UUG":"L","UCG":"S","UAG":"*","UGG":"W",
@@ -64,18 +69,40 @@ codonDict = {"UUU":"F","UCU":"S","UAU":"Y","UGU":"C",
 "GUC":"V","GCC":"A","GAC":"D","GGC":"G", 
 "GUA":"V","GCA":"A","GAA":"E","GGA":"G", 
 "GUG":"V","GCG":"A","GAG":"E","GGG":"G"}
-#codonDict["CAG"] # testing that the dictionary works
-#print codonDict
+#codonDictRNA["CAG"] # testing that the dictionary works
+#print codonDictRNA
+
+codonDictDNA = {"TTT":"F","TCT":"S","TAT":"Y","TGT":"C",
+"TTC":"F","TCC":"S","TAC":"Y","TGC":"C",
+"TTA":"L","TCA":"S","TAA":"*","TGA":"W",
+"TTG":"L","TCG":"S","TAG":"*","TGG":"W",
+"CTT":"L","CCT":"P","CAT":"H","CGT":"R",
+"CTC":"L","CCC":"P","CAC":"H","CGC":"R", 
+"CTA":"L","CCA":"P","CAA":"Q","CGA":"R", 
+"CTG":"L","CCG":"P","CAG":"Q","CGG":"R",
+"ATT":"I","ACT":"T","AAT":"N","AGT":"S",
+"ATC":"I","ACC":"T","AAC":"N","AGC":"S",
+"ATA":"M","ACA":"T","AAA":"K","AGA":"*",
+"ATG":"M","ACG":"T","AAG":"K","AGG":"*",
+"GTT":"V","GCT":"A","GAT":"D","GGT":"G",  
+"GTC":"V","GCC":"A","GAC":"D","GGC":"G", 
+"GTA":"V","GCA":"A","GAA":"E","GGA":"G", 
+"GTG":"V","GCG":"A","GAG":"E","GGG":"G"}
+
+
 
 codonSeq = [] # codon sequence goes in this list
 aminoSeq = [] # amino acid sequence goes in this list
-
+    
 # This is supposed to be the function to convert the codons to amino acids, 
 # if I can figure out what i'm doing
 def seqConvert(sequence):
     """
     seqConvert will take a nucleotide sequence and convert it to an amino acid sequence
+    and prints it to the screen
+    user inputs whether the sequence is a DNA sequence ("y") or an RNA sequence
     """    
+    aminoSeq = []
     y = 0    # these are the starting index values for the nucleotide sequence string
     z = 3
     codonSeq.append(sequence[y:z]) # appending the first codon to the codonSeq list
@@ -83,25 +110,39 @@ def seqConvert(sequence):
         y += 3 # increases y and z by 3 to move down the list
         z += 3
         codonSeq.append(sequence[y:z]) # appends the new codon to the codonSeq list
-    for item in codonSeq:
-        aminoSeq.append(codonDict.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
+    if nuc == "dna":
+        for item in codonSeq:
+            aminoSeq.append(codonDictDNA.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
+    else:
+        for item in codonSeq:
+            aminoSeq.append(codonDictRNA.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
+  
+    # for some reason, the seqConvert function is appending a bunch of extraneous stuff
+    # to the end of the lists, so this is to remove that
+    
+    aminoSeq = aminoSeq[0:(len(mySequence)/3)] 
 
-seqConvert(mySequence) # calling the function seqConvert with mySequence
+    # removes the * from the amino acid sequence
+    while "*" in aminoSeq:
+        aminoSeq.remove("*")
+    while "None" in aminoSeq:
+        aminoSeq.remove("None")
+        
+    # this converts the list aminoSeq to a string and then prints it
+    AAstring = ''.join(aminoSeq) # converts the aminoSeq list to a string
+    
+    if nuc == "dna":        
+        print "the amino acid sequence from the DNA sequence is:", "\n", AAstring # prints the new string of amino acids
 
-# for some reason, the seqConvert function is appending a bunch of extraneous stuff
-# to the end of the lists, so this is to remove that
-aminoSeq = aminoSeq[0:(len(mySequence)/3)] 
+    else:
+        print "the amino acid sequence from the reverse complement RNA sequence is:", "\n", AAstring # prints the new string of amino acids
 
-# removes the * from the amino acid sequence
-while "*" in aminoSeq:
-    aminoSeq.remove("*")
+nuc = raw_input("do you want to convert the DNA or RNA sequence? (enter DNA or RNA): ").lower()    
+print "\n"
+if nuc == "dna":
+    seqConvert(mySequence2) # calling the function seqConvert with the DNA sequence
 
-# I had this line of code because the dictionary was initially lower case, but I left it here just in case.
-# codonSeq = [item.lower() for item in codonSeq] # convert list to lower case to work with dictionary
+else:
+    seqConvert(mySequence) # calling the function seqConvert with the RNA sequence
 
-#print aminoSeq # just for testing purposes
-
-# this converts the list aminoSeq to a string and then prints it
-AAstring = ''.join(aminoSeq) # converts the aminoSeq list to a string
-print "the amino acid sequence is:", "\n", AAstring # prints the new string of amino acids
-
+# Genbank BLAST came back as Pseudacris: http://blast.ncbi.nlm.nih.gov/Blast.cgi#alnHdr_594593098
