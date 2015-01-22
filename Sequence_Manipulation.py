@@ -10,7 +10,7 @@ Assignment 1 for Computational Phylogenetics at LSU
 
 # Will manipulate a sequence of DNA nucleotides. Converts to the RNA equivalent, the reverse complement of the RNA strand, and the amino acid sequence
 
-
+ 
 # this string is a nucleotide sequence
 # The sequence lenth was not divisible by 3, so i deleted the last two codons.
 mySequence = "aaaagctatcgggcccataccccaaacatgttggttaaaccccttcctttgctaattaatccttacgctatctccatcattatctccagcttagccctgggaactattactaccctatcaagctaccattgaatgttagcctgaatcggccttgaaattaacactctagcaattattcctctaataactaaaacacctcaccctcgagcaattgaagccgcaactaaatacttcttaacacaagcagcagcatctgccttaattctatttgcaagcacaatgaatgcttgactactaggagaatgagccattaatacccacattagttatattccatctatcctcctctccatcgccctagcgataaaactgggaattgccccctttcacttctgacttcctgaagtcctacaaggattaaccttacaaaccgggttaatcttatcaacatgacaaaaaatcgccccaatagttttacttattcaactatcccaatctgtagaccttaatctaatattattcctcggcttactttctacagttattggcggatgaggaggtattaaccaaacccaaattcgtaaagtcctagcattttcatcaatcgcccacctaggc"
@@ -32,6 +32,8 @@ mySequence = mySequence.replace("a", "u") # converts a to u
 mySequence = mySequence.replace("g", "c") # converts g to c
 mySequence = mySequence.replace("x", "g") # gets rid of that placeholder and replaces it with a g
 mySequence = mySequence.replace("y", "a") # gets rid of that placeholder and replaces it with an a
+
+mySequence = mySequence[::-1] # reverses the string
 
 print"\n", "this is the reverse complement of the RNA sequence: "
 print(mySequence) # prints the new version of mySequence
@@ -70,7 +72,10 @@ aminoSeq = [] # amino acid sequence goes in this list
 
 # This is supposed to be the function to convert the codons to amino acids, 
 # if I can figure out what i'm doing
-def seqConvert(sequence): # here I'm defining a function "seqConvert" to convert a nucleotide sequence
+def seqConvert(sequence):
+    """
+    seqConvert will take a nucleotide sequence and convert it to an amino acid sequence
+    """    
     y = 0    # these are the starting index values for the nucleotide sequence string
     z = 3
     codonSeq.append(sequence[y:z]) # appending the first codon to the codonSeq list
@@ -78,12 +83,9 @@ def seqConvert(sequence): # here I'm defining a function "seqConvert" to convert
         y += 3 # increases y and z by 3 to move down the list
         z += 3
         codonSeq.append(sequence[y:z]) # appends the new codon to the codonSeq list
-    #aminoSeq = [codonDict("") for item in codonSeq]
     for item in codonSeq:
-  #      x  = codonDict.get(item)
-        aminoSeq.append(codonDict.get(item))
+        aminoSeq.append(codonDict.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
 
-     
 seqConvert(mySequence) # calling the function seqConvert with mySequence
 
 # for some reason, the seqConvert function is appending a bunch of extraneous stuff
@@ -100,6 +102,6 @@ while "*" in aminoSeq:
 #print aminoSeq # just for testing purposes
 
 # this converts the list aminoSeq to a string and then prints it
-string = ''.join(aminoSeq) # converts the aminoSeq list to a string
-print "the amino acid sequence is:", "\n", string # prints the new string of amino acids
+AAstring = ''.join(aminoSeq) # converts the aminoSeq list to a string
+print "the amino acid sequence is:", "\n", AAstring # prints the new string of amino acids
 
