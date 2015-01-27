@@ -1,148 +1,152 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 20 11:27:04 2015
+Created on Sun 25 Jan 2015
 
 @author: Oscar Johnson github.com/henicorhina
 
-Assignment 1 for Computational Phylogenetics at LSU
+Assignment 2 for Computational Phylogenetics at LSU
 """
-#! /usr/bin/env python
+# Practice with using Discrete Sampling
 
-# Will manipulate a sequence of DNA nucleotides. Converts to the RNA equivalent, the reverse complement of the RNA strand, and the amino acid sequence
+import random
+from scipy.stats import rv_discrete
+import matplotlib.pyplot as plt
 
- 
-# this string is a nucleotide sequence
-# The sequence lenth was not divisible by 3, so i deleted the last two codons.
-mySequence = "aaaagctatcgggcccataccccaaacatgttggttaaaccccttcctttgctaattaatccttacgctatctccatcattatctccagcttagccctgggaactattactaccctatcaagctaccattgaatgttagcctgaatcggccttgaaattaacactctagcaattattcctctaataactaaaacacctcaccctcgagcaattgaagccgcaactaaatacttcttaacacaagcagcagcatctgccttaattctatttgcaagcacaatgaatgcttgactactaggagaatgagccattaatacccacattagttatattccatctatcctcctctccatcgccctagcgataaaactgggaattgccccctttcacttctgacttcctgaagtcctacaaggattaaccttacaaaccgggttaatcttatcaacatgacaaaaaatcgccccaatagttttacttattcaactatcccaatctgtagaccttaatctaatattattcctcggcttactttctacagttattggcggatgaggaggtattaaccaaacccaaattcgtaaagtcctagcattttcatcaatcgcccacctaggc"
+# Question 1
 
-# use this sequence for converting directly from DNA to AA
-mySequence2 = "aaaagctatcgggcccataccccaaacatgttggttaaaccccttcctttgctaattaatccttacgctatctccatcattatctccagcttagccctgggaactattactaccctatcaagctaccattgaatgttagcctgaatcggccttgaaattaacactctagcaattattcctctaataactaaaacacctcaccctcgagcaattgaagccgcaactaaatacttcttaacacaagcagcagcatctgccttaattctatttgcaagcacaatgaatgcttgactactaggagaatgagccattaatacccacattagttatattccatctatcctcctctccatcgccctagcgataaaactgggaattgccccctttcacttctgacttcctgaagtcctacaaggattaaccttacaaaccgggttaatcttatcaacatgacaaaaaatcgccccaatagttttacttattcaactatcccaatctgtagaccttaatctaatattattcctcggcttactttctacagttattggcggatgaggaggtattaaccaaacccaaattcgtaaagtcctagcattttcatcaatcgcccacctaggc"
-
-# this prints the length of the DNA sequence
-print "the length of the sequence is", (len(mySequence)), "nucleotides" 
-
-# replacing thymine with uracil to convert the DNA sequence to an RNA sequence
-print"\n", "this is the RNA equivalent of the DNA sequence: "
-print(mySequence.replace("t","u")) # the replace function
-
-# note that to actually save the replaced codons, you
-# need to redefine mySequence each time (so, mySequence = mySequence.append)
-# also need to add an intermediate placeholder so that it doesn't just end up with 
-# a long string of g's or c's
-mySequence = mySequence.replace("c", "x") # x is the placeholder for c
-mySequence = mySequence.replace("t", "y") # y is a placeholder for u
-mySequence = mySequence.replace("a", "u") # converts a to u
-mySequence = mySequence.replace("g", "c") # converts g to c
-mySequence = mySequence.replace("x", "g") # gets rid of that placeholder and replaces it with a g
-mySequence = mySequence.replace("y", "a") # gets rid of that placeholder and replaces it with an a
-
-mySequence = mySequence[::-1] # reverses the string
-
-print"\n", "this is the reverse complement of the RNA sequence: "
-print(mySequence) # prints the new version of mySequence
-
-
-print"\n", "the 13th codon is: ", mySequence[36:39] # prints the 13th codon. 
-# note that this is number 14 in the index.
-print"the 14th codon is: ", mySequence[39:42], "\n" # prints the 14th codon.
-
-#Convert to upper case to work with the dictionary
-mySequence = mySequence.upper()
-#print mySequence
-
-mySequence2 = mySequence2.upper()
-
-# dictionary to store the Vertebrate mitochondrial genetic code
-codonDictRNA = {"UUU":"F","UCU":"S","UAU":"Y","UGU":"C",
-"UUC":"F","UCC":"S","UAC":"Y","UGC":"C",
-"UUA":"L","UCA":"S","UAA":"*","UGA":"W",
-"UUG":"L","UCG":"S","UAG":"*","UGG":"W",
-"CUU":"L","CCU":"P","CAU":"H","CGU":"R",
-"CUC":"L","CCC":"P","CAC":"H","CGC":"R", 
-"CUA":"L","CCA":"P","CAA":"Q","CGA":"R", 
-"CUG":"L","CCG":"P","CAG":"Q","CGG":"R",
-"AUU":"I","ACU":"T","AAU":"N","AGU":"S",
-"AUC":"I","ACC":"T","AAC":"N","AGC":"S",
-"AUA":"M","ACA":"T","AAA":"K","AGA":"*",
-"AUG":"M","ACG":"T","AAG":"K","AGG":"*",
-"GUU":"V","GCU":"A","GAU":"D","GGU":"G",  
-"GUC":"V","GCC":"A","GAC":"D","GGC":"G", 
-"GUA":"V","GCA":"A","GAA":"E","GGA":"G", 
-"GUG":"V","GCG":"A","GAG":"E","GGG":"G"}
-#codonDictRNA["CAG"] # testing that the dictionary works
-#print codonDictRNA
-
-codonDictDNA = {"TTT":"F","TCT":"S","TAT":"Y","TGT":"C",
-"TTC":"F","TCC":"S","TAC":"Y","TGC":"C",
-"TTA":"L","TCA":"S","TAA":"*","TGA":"W",
-"TTG":"L","TCG":"S","TAG":"*","TGG":"W",
-"CTT":"L","CCT":"P","CAT":"H","CGT":"R",
-"CTC":"L","CCC":"P","CAC":"H","CGC":"R", 
-"CTA":"L","CCA":"P","CAA":"Q","CGA":"R", 
-"CTG":"L","CCG":"P","CAG":"Q","CGG":"R",
-"ATT":"I","ACT":"T","AAT":"N","AGT":"S",
-"ATC":"I","ACC":"T","AAC":"N","AGC":"S",
-"ATA":"M","ACA":"T","AAA":"K","AGA":"*",
-"ATG":"M","ACG":"T","AAG":"K","AGG":"*",
-"GTT":"V","GCT":"A","GAT":"D","GGT":"G",  
-"GTC":"V","GCC":"A","GAC":"D","GGC":"G", 
-"GTA":"V","GCA":"A","GAA":"E","GGA":"G", 
-"GTG":"V","GCG":"A","GAG":"E","GGG":"G"}
-
-
-
-codonSeq = [] # codon sequence goes in this list
-aminoSeq = [] # amino acid sequence goes in this list
-    
-# This is supposed to be the function to convert the codons to amino acids, 
-# if I can figure out what i'm doing
-def seqConvert(sequence):
+def functionMult(y, x):
     """
-    seqConvert will take a nucleotide sequence and convert it to an amino acid sequence
-    and prints it to the screen
-    user inputs whether the sequence is a DNA sequence ("y") or an RNA sequence
+    multiplies all consecutively decreasing numbers 
+    between a maximum and a minimum supplied as arguments
+    """
+    # increases the maximum value by one, since a range does not include the max value
+    x += 1
+    
+    # creates a list of numbers between the min and max values
+    list = range(y,x) 
+    
+    # uses reduce and lambda to multiply all the values of a list together
+    #print(reduce(lambda x, y: x*y, list)) 
+    return(reduce(lambda x, y: x*y, list))
+    
+# calls the function with user input of max and min values
+print(functionMult(input("What is the minimum value? "), input("What is the maximum value? ")))
+
+
+# Question 2a
+n = input("What is n? ")
+k = input("What is k? ")
+
+# I think this is the way that you wanted us to do it, but I'm really not sure
+def binomialCoefficientA(n,k):
+    """
+    a function that calculates the binomial coefficient
+    
+    uses the formula: n(n-1)...(n-k+1) / k!
+    calling the factorial function. Note that you need to specify 1 as the minimum value
+    the first argument is the numerator and the second two arguments is the denominator
     """    
-    aminoSeq = []
-    y = 0    # these are the starting index values for the nucleotide sequence string
-    z = 3
-    codonSeq.append(sequence[y:z]) # appending the first codon to the codonSeq list
-    for x in sequence: # Using a for loop to do this same thing for every set of three nucleotides
-        y += 3 # increases y and z by 3 to move down the list
-        z += 3
-        codonSeq.append(sequence[y:z]) # appends the new codon to the codonSeq list
-    if nuc == "dna":
-        for item in codonSeq:
-            aminoSeq.append(codonDictDNA.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
-    else:
-        for item in codonSeq:
-            aminoSeq.append(codonDictRNA.get(item)) # "gets" the item from the dictionary and appends to the amino acid sequence
-  
-    # for some reason, the seqConvert function is appending a bunch of extraneous stuff
-    # to the end of the lists, so this is to remove that
+    return (functionMult((n-k+1), n) / (functionMult(1, k)))
+
+# calls the function with the user inputs of n and k
+bino = binomialCoefficientA(n, k)
+print  "\n", "the binomial coefficient is: ", bino
+
+# Question 2b
+
+def binomialCoefficientB(n,k):
+    """
+    a function that calculates the binomial coefficient
     
-    aminoSeq = aminoSeq[0:(len(mySequence)/3)] 
-
-    # removes the * from the amino acid sequence
-    while "*" in aminoSeq:
-        aminoSeq.remove("*")
-    while "None" in aminoSeq:
-        aminoSeq.remove("None")
-        
-    # this converts the list aminoSeq to a string and then prints it
-    AAstring = ''.join(aminoSeq) # converts the aminoSeq list to a string
+    uses the formula: n! / (n-k)! k!
+    calling the factorial function. Note that you need to specify 1 as the minimum value
+    the first argument is the numerator
+    the second two arguments are the denominator
+    """    
+    return (functionMult(1, n)) / ((functionMult(1, (n-k)) * (functionMult(1, k))))
     
-    if nuc == "dna":        
-        print "the amino acid sequence from the DNA sequence is:", "\n", AAstring # prints the new string of amino acids
+# calling the function for n and k
+#slow = binomialCoefficientB(n, k)
+#print  "\n", "the binomial coefficient is: ", slow
+    
 
-    else:
-        print "the amino acid sequence from the reverse complement RNA sequence is:", "\n", AAstring # prints the new string of amino acids
+# Question 3
 
-nuc = raw_input("do you want to convert the DNA or RNA sequence? (enter DNA or RNA): ").lower()    
-print "\n"
-if nuc == "dna":
-    seqConvert(mySequence2) # calling the function seqConvert with the DNA sequence
+"""
+I ran the two equations with n = 100,000 and k = 500
+The first equation (binomialCoefficientA) was significantly faster than B
+A took less than 1 second, B took 7 seconds
+This time increased even more when n = 1,000,000 and k = 1,000
+My computer almost crashed when I tried to run B, but A still ran in ~1 second
+"""
 
-else:
-    seqConvert(mySequence) # calling the function seqConvert with the RNA sequence
 
-# Genbank BLAST came back as Pseudacris: http://blast.ncbi.nlm.nih.gov/Blast.cgi#alnHdr_594593098
+# Question 4
+
+def bernoulli(p):
+    """
+    function that returns the binomial(n,p) distribution of k successes 
+    in n bernoulli trials, given a user-input of probability (prob)
+    note that "bino" is the return from the binomial coefficient
+    """
+    return bino * (pow(p,k) * pow((1 - p),(n-k)))
+
+prob = input("what is the probability of the bernoulli distribution (enter a decimal value): ")
+print "\n", "the binomial(n,p) distribution is: ", bernoulli(prob)
+
+size = input("how many trials do you want to run? ")
+
+# Plot a Probability Mass Function (PMF) distribution	
+
+# newList to append bernoulli probabilities
+newList = []	
+for x in range(size):
+    # appends bernoulli probabilities based on the user input number of trials
+    newVal = random.random() # creates random probabilities
+    newList.append(bernoulli(newVal)) # runs through the bernoulli function
+
+# plot to histogram using matplotlib
+
+plt.hist(newList)
+plt.xlabel("k (Success!!!)")
+plt.ylabel("Probability Mass Function")
+plt.show()	
+
+
+# Question 5
+
+def discreteSamp(happyCat, sadCat, s):
+    """
+    function to sample from a discrete distribution. Most of this was copied off
+    the internet, so i'm not entirely sure how it works (ask Glaucia). 
+    takes three inputs, happyCat = list of events, sadCat = list of probabilities,
+    and s = number of trials
+    """
+    trials = rv_discrete(name='trials', values=(happyCat, sadCat))
+    sample = trials.rvs(size = s)
+    x = []
+    x.append(sample)
+    return x
+
+# just a list of six events (die rolls) and associated probabilties to test the function
+xk = [1, 2, 3, 4, 5, 6]
+pk = [0.1, 0.2, 0.3, 0.1, 0.1, 0.1]
+
+# calls the function
+discrete = discreteSamp(happyCat=xk, sadCat=pk, s=size)
+
+print "\n", " the list of results is: ", discrete.pop(0)
+
+
+# Question 6
+
+
+
+
+
+
+
+
+
+    
