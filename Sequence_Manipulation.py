@@ -8,11 +8,12 @@ Created on Sun 25 Jan 2015
 Assignment 2 for Computational Phylogenetics at LSU
 """
 # Practice with using Discrete Sampling
-
+from __future__ import division
 import random
 import numpy
 from scipy.stats import rv_discrete
 import matplotlib.pyplot as plt
+
 
 # Question 1
 
@@ -141,8 +142,6 @@ discrete = discrete[0]
 
 print "\n", " the list of results is: ", discrete
 
-print "\n", " the list of results is: ", discrete.pop(0)
-
 
 # Question 6
 list1 = []
@@ -181,13 +180,12 @@ list2 = []
 howMany = input("how many times would you like to run the simulation? ")
 value2 = multSeqAlign(howMany)
 
-print "list of type 1", list1
-print "list of type 2", list2
+print "\n", "list of type 1", list1
+print "\n", "list of type 2", list2
 
 
 # Question 8
 
-from __future__ import division
 
 # divides each index of list1 by the index of list2 to get the proportions
 # if statement decides which value is larger to be able to divide and get a decimal
@@ -238,10 +236,5 @@ inverse of the raw probabilities
 
 # Question 11
 
-# run with 10,000 trials
-
-value2 = multSeqAlign(10000)
-
-
-
-    
+# run with 10,000 trials - repeat the file with the user input of 10,000 for 
+# deciding how many trials to run
