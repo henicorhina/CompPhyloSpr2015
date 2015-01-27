@@ -10,6 +10,7 @@ Assignment 2 for Computational Phylogenetics at LSU
 # Practice with using Discrete Sampling
 
 import random
+import numpy
 from scipy.stats import rv_discrete
 import matplotlib.pyplot as plt
 
@@ -97,6 +98,7 @@ print "\n", "the binomial(n,p) distribution is: ", bernoulli(prob)
 
 size = input("how many trials do you want to run? ")
 
+
 # Plot a Probability Mass Function (PMF) distribution	
 
 # newList to append bernoulli probabilities
@@ -107,7 +109,6 @@ for x in range(size):
     newList.append(bernoulli(newVal)) # runs through the bernoulli function
 
 # plot to histogram using matplotlib
-
 plt.hist(newList)
 plt.xlabel("k (Success!!!)")
 plt.ylabel("Probability Mass Function")
@@ -136,16 +137,110 @@ pk = [0.1, 0.2, 0.3, 0.1, 0.1, 0.1]
 # calls the function
 discrete = discreteSamp(happyCat=xk, sadCat=pk, s=size)
 
+discrete = discrete[0]
+
+print "\n", " the list of results is: ", discrete
+
 print "\n", " the list of results is: ", discrete.pop(0)
 
 
 # Question 6
+list1 = []
+list2 = []    
+
+def multSeqAlign(num):
+    for x in range(0, num):
+        # lists of events (either 1 or 2) and equal probabilities
+        
+        events = [1, 2]
+        probabilities = [0.5, 0.5]
+        sequenceLength = 400
+        
+        # calling the discreteSamp function for a list of 400 values
+        value = discreteSamp(events, probabilities, sequenceLength)
+        
+        # pulls the first list from the array and converts it to a list form
+        value = value[0]
+        value = numpy.array(value).tolist()
+        list1.append(value.count(1))
+        list2.append(value.count(2))
+    return value
+        
+
+value = multSeqAlign(1)
+print "\n", "the count of value one is: ", value.count(1)
+print "\n", "the count of value two is: ", value.count(2)
+
+
+# Question 7
+
+#reset the lists
+list1 = []
+list2 = []    
+
+howMany = input("how many times would you like to run the simulation? ")
+value2 = multSeqAlign(howMany)
+
+print "list of type 1", list1
+print "list of type 2", list2
+
+
+# Question 8
+
+from __future__ import division
+
+# divides each index of list1 by the index of list2 to get the proportions
+# if statement decides which value is larger to be able to divide and get a decimal
+type1 = []
+for i in range(0,len(list1)):
+    if list1[i] > list2[i]:
+        x = float(list2[i] / list1[i])
+        type1.append(x)
+    else: 
+        x = float(list1[i] / list2[i])
+        type1.append(x)
+
+#print type1
+
+plt.hist(type1)
+plt.xlabel("proportions of counts")
+plt.ylabel("probability")
+plt.show()	
 
 
 
+# Question 9
+
+# empty list for bernoulli probabilities
+bernProbs = []
+
+# runs through the type1 list of proportions and calculates the bernoulli
+# probabilities using the bernoulli function (see Question 4)
+for i in range(len(type1)):
+    x = bernoulli(type1[i])
+    bernProbs.append(x)
 
 
+# Plot a Probability Mass Function (PMF) distribution	
+# using matplotlib histogram
+plt.hist(bernProbs)
+plt.xlabel("k (Success!!!)")
+plt.ylabel("Probability Mass Function")
+plt.show()	
 
+
+# Question 10
+"""
+The histograms are printed to the screen. The PMF appears to be nearly the
+inverse of the raw probabilities
+"""
+
+
+# Question 11
+
+# run with 10,000 trials
+
+value2 = multSeqAlign(10000)
 
 
 
