@@ -1,8 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# author: henicorhina
-
 # Discrete-time Markov chains
 
 
@@ -79,10 +77,12 @@ def marcov (i = random.choice(tup), step = 10):
     step = how many steps to run the simulation for
     
     """
+    step += 1
     sims = [] # List to hold the results of the Marcov chain
+    sims.append(i)
     for x in range(step):
         
-        if i == 'A':
+        if sims[-1] == 'A':
             x = np.random.random() # Random number generator
             if matrix[0][0] > x:
                 sims.append('A')
@@ -94,7 +94,7 @@ def marcov (i = random.choice(tup), step = 10):
                 sims.append('A')
             else:
                 sims.append('B')
-    return sims
+    return sims[1:-1]
             
 
 # draws a random state from the tuple of state space
@@ -151,13 +151,17 @@ def marcovNuc (i = random.choice(stateSpace), step = 100):
     
     """
     # matrix of transition probabilities
-    # matrix = [[0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25]] 
+    #matrix = [[0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25]] 
     matrix = [[0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1]] 
+    step += 1 # add one to the range because we remove it at the end
     sims = [] # List to hold the results of the Marcov chain
+    sims.append(i) # append the seed value to the sims list
     for x in range(step):
         
-        if i == 'A':
+        if sims[-1] == 'A':
             w = np.random.random() # Random number generator
+            # the next set of if statements determine where the random number 
+            # sits on the number line of probabilities
             if matrix[0][0] > w:
                 sims.append('A')
             elif matrix[0][1] + matrix[0][0] > w:
@@ -166,7 +170,7 @@ def marcovNuc (i = random.choice(stateSpace), step = 100):
                 sims.append('G')
             else:
                 sims.append('T')
-        elif i == 'C':
+        elif sims[-1] == 'C':
             x = np.random.random()
             if matrix[1][0] > x:
                 sims.append('A')
@@ -177,7 +181,7 @@ def marcovNuc (i = random.choice(stateSpace), step = 100):
             else:
                 sims.append('T')
     
-        elif i == 'G':
+        elif sims[-1] == 'G':
             y = np.random.random()
             if matrix[2][0] > y:
                 sims.append('A')
@@ -199,7 +203,7 @@ def marcovNuc (i = random.choice(stateSpace), step = 100):
             else:
                 sims.append('T')
 
-    return sims
+    return sims[1:-1] # remove the initial value (the seed)
             
 
          
@@ -209,6 +213,17 @@ def marcovNuc (i = random.choice(stateSpace), step = 100):
 simsNuc = marcovNuc()
 
 print simsNuc
+
+
+endValNuc = []
+
+for x in range(100):
+    simsNuc2 = marcovNuc(random.choice(stateSpace), 100)
+    endValNuc.append(simsNuc2[-1])
+
+
+print "\n", "there are", endValNuc.count("A"), "A end values,", endValNuc.count("C"), "C end values,"
+print endValNuc.count("G"), "G end values, and", endValNuc.count("T"), "T end values"
 
 
 
@@ -239,19 +254,20 @@ here are the ending states for 100 steps and the matrix:
 matrix = [[0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1], [0.4, 0.3, 0.2, 0.1]] 
 
 
-['A', 'A', 'C', 'G', 'C', 'C', 'A', 'T', 'C', 'G', 'G', 'G', 'G', 'G', 'A', 
-'G', 'C', 'A', 'A', 'A', 'A', 'G', 'C', 'G', 'C', 'T', 'C', 'C', 'A', 'G', 
-'A', 'A', 'G', 'A', 'C', 'A', 'C', 'A', 'A', 'A', 'C', 'G', 'T', 'G', 'G', 
-'A', 'A', 'A', 'G', 'A', 'A', 'G', 'G', 'A', 'G', 'A', 'G', 'A', 'C', 'C', 
-'C', 'G', 'C', 'C', 'A', 'A', 'C', 'A', 'A', 'A', 'C', 'A', 'C', 'G', 'G', 
-'C', 'C', 'C', 'T', 'A', 'C', 'C', 'A', 'A', 'A', 'C', 'A', 'A', 'G', 'A', 
-'C', 'G', 'C', 'G', 'C', 'A', 'C', 'T', 'A', 'A']
+['A', 'A', 'A', 'C', 'A', 'C', 'A', 'G', 'C', 'G', 'C', 'A', 'G', 'C', 'T', 
+'C', 'C', 'C', 'A', 'G', 'T', 'A', 'A', 'T', 'A', 'C', 'C', 'G', 'C', 'A', 
+'A', 'C', 'G', 'T', 'A', 'A', 'G', 'T', 'T', 'C', 'C', 'A', 'A', 'G', 'A', 
+'G', 'T', 'A', 'G', 'G', 'A', 'A', 'A', 'G', 'A', 'A', 'G', 'A', 'C', 'C', 
+'A', 'G', 'A', 'A', 'A', 'T', 'A', 'G', 'A', 'A', 'A', 'C', 'A', 'C', 'G', 
+'A', 'A', 'T', 'A', 'A', 'A', 'G', 'C', 'A', 'A', 'A', 'A', 'A', 'G', 'A', 
+'C', 'C', 'A', 'T', 'A', 'A', 'A', 'A', 'A', 'A']
+
 
 Counts:
-A = 40
-C = 30
-G = 25
-T = 5
+A = 39
+C = 32
+G = 20
+T = 9
 
 This matches the 4:3:2:1 ratio of the matrix very well.
 
