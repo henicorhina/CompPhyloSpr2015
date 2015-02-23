@@ -193,10 +193,10 @@ def mcStateFreqSum(sims,state="A"):
 yetAnotherMatrix = [[0.9, 0.1], 
                  [0.1, 0.9]]
 
-list10000 = [] # blank list for the 1000 runs
+list10000 = [] # blank list for the 10000 runs
 for x in range(10000):
     run10000 = marcov(random.choice(tup), 25, yetAnotherMatrix)
-    list10000.append(run10000)
+    list10000.append(run10000[0])
 
     
 # Summarize the frequency of one state through time
