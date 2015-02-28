@@ -12,6 +12,7 @@ import random
 import numpy as np
 import scipy as sp
 from scipy.stats import binom
+from scipy.linalg import expm
 
 
 class markov(object):
@@ -28,10 +29,10 @@ class markov(object):
     
     def __init__(self, stateSpace = ('A', 'C', 'G', 'T'), numSims = 1, chainLength = 10, 
                 matrix = [[0.8, 0.2], [0.3, 0.7]],
-                Q = np.matrix([[-1.916, 0.541, 0.787, 0.588], 
-                               [0.148, -1.069, 0.415, 0.506], 
-                               [0.286, 0.170, -0.591, 0.135],
-                               [0.525, 0.236, 0.594, -1.355]])):                       
+                Q = np.array([[-1.916, 0.541, 0.787, 0.588], 
+                              [0.148, -1.069, 0.415, 0.506], 
+                              [0.286, 0.170, -0.591, 0.135],
+                              [0.525, 0.236, 0.594, -1.355]])):                       
         self.stateSpace = stateSpace
         self.numSims = numSims
         self.chainLength = chainLength
@@ -40,7 +41,8 @@ class markov(object):
         self.chain = [] # List to hold the results of the Marcov chain
         self.times = [] # List to hold the probabilities of the Marcov chain
         self.margQ = () # holds the array for the marginal probabilities of a Q-matrix
-    
+        self.tProb = () # holds the array for the transitional probabilities of a Q-matrix
+        
     def discSamp(self, events, probs):
         """
         This function samples from a list of discrete events provided in the events
@@ -200,9 +202,9 @@ class dtmarkov(markov):
             likeScoresC.append(binom.pmf(self.chain.count("C"), self.chainLength, i))
             likeScoresG.append(binom.pmf(self.chain.count("G"), self.chainLength, i))
             likeScoresT.append(binom.pmf(self.chain.count("T"), self.chainLength, i))
-
+            
         return likeScoresA, likeScoresC, likeScoresG, likeScoresT
-
+        
             
 class ctmarkov(markov):
     """ Continuous-time Markov chain simulator
@@ -220,37 +222,48 @@ class ctmarkov(markov):
             Takes the 4-state nucleotide State Space and 
             nucleotide Rate Matrix defined above
         """
-        #self.times = []
-        #self.chain = []
-        currState = self.discSamp(self.stateSpace,[1.0/len(self.stateSpace) for x in self.stateSpace])
+        
+        # current state if sampling from the stationary distribution
+        currState = self.discSamp(self.stateSpace, self.margProb(chainLength=100)[0])
+        
+        # current state if sampling from a uniform distribution
+        #currState = self.discSamp(self.stateSpace,[1.0/len(self.stateSpace) for x in self.stateSpace])
+        
         self.chain.extend(currState)
         
         # samples the waiting time from the exponential distribution using the appropriate value from the rateMatrix
         while sum(self.times) < self.chainLength: # stops the chain when the branch length exeeds the sum of the times list
             timeSample = (random.expovariate(-(self.Q[self.stateSpace.index(currState), self.stateSpace.index(currState)])))
             self.times.append(timeSample)        
-            x = self.margProb()
-            currState = self.discSamp(self.stateSpace, x[0])         
+            
+            x = 1
+            row = self.Q[self.stateSpace.index(currState)] # row from appropriate index from the stateSpace
+            # converts that row to a one-dimensional array of transition probabilities
+            for i in row:
+                if i < 0:
+                    x = i
+                val = (row / x) * -1
+            x = val.tolist() # converts array to list
+            x.pop(self.stateSpace.index(currState)) # removes the negative value (was the diagonal)
+            x.insert(self.stateSpace.index(currState), 0) # replaces the diagonal with prob of "0"
+            #print x
+
+            currState = self.discSamp(self.stateSpace, x)         
             self.chain.extend(currState)
             
-            # these are all failed attempts at getting the ct chain to work:
-            #currState = self.discSamp(self.stateSpace, self.margProb.margQ[0])                     
-            #probs = self.Q[self.stateSpace.index(currState)] # Grabbing row associated with currState
-            #currState = self.margProb[0][self.discSamp(self.stateSpace,probs)]
-
         return self.chain, self.times
-
-
-    def margProb(self):
+        
+        
+    def margProb(self, chainLength = 10):
         """ Calculates the marginal probabilities of a Q-matrix
             There is a built in function to do this. In Scipy.linalg.exm(Q*v)
             pass it Q, which has to be an array
             Q = scipy.array(Q)
         """
-        return sp.linalg.expm(self.Q*self.chainLength)
+        return sp.linalg.expm(self.Q*chainLength)
 
         # failed attempts:
-        #self.margQ = sp.linalg.expm(self.Q*self.chainLength)
+        #self.margQ = sp.linalg.expm(self.Q*chainLength)
         #return self.margQ
 
     def multSimsCTMC(self):
@@ -264,6 +277,19 @@ class ctmarkov(markov):
             self.chain.append(run[0])
         return self.chain
 
+    def stateProb(self):
+        """a work in progress
+        """
+        sum = 1
+        for i in self.times:
+            sum *= i
+        for i in self.chain:
+            x = self.stateSpace.index[i]
+            
+            if i > 0:
+                sum *= i
+        
+            
 
 
 # stuff to pass the ctmarkov class in an example
@@ -272,8 +298,7 @@ print simulation1
 
 """ IT'S WORKING!!!!
     This is from a continuous time marcov chain simulator
-(['G', 'C', 'G', 'G', 'C', 'C', 'C', 'A', 'G', 'A', 'G', 'G', 'G'], 
- [1.0503962271454141, 0.57410609394085899, 2.431084419690781, 2.2274541761426785, 
-  0.38986908712834706, 0.47031628468991038, 0.89942168665521571, 0.0059148246206891363, 
-  0.15468751112105308, 0.45635329057643892, 0.35925215447262654, 1.0984586327963748])
+(['C', 'G', 'A', 'G', 'A', 'T', 'A', 'C', 'T', 'G', 'T'], 
+[3.6766402766957738, 1.0117011882308808, 0.28369755057830681, 0.78290088271085601, 
+0.0084820317566074652, 0.28676516298665916, 0.13703870620384057, 5.4660886053329039])
 """
