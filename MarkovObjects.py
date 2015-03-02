@@ -41,7 +41,7 @@ class markov(object):
         self.chain = [] # List to hold the results of the Marcov chain
         self.times = [] # List to hold the probabilities of the Marcov chain
         self.margQ = () # holds the array for the marginal probabilities of a Q-matrix
-        self.tProb = () # holds the array for the transitional probabilities of a Q-matrix
+        self.tProb = [] # holds the array for the transitional probabilities of a Q-matrix
         
     def discSamp(self, events, probs):
         """
@@ -202,9 +202,9 @@ class dtmarkov(markov):
             likeScoresC.append(binom.pmf(self.chain.count("C"), self.chainLength, i))
             likeScoresG.append(binom.pmf(self.chain.count("G"), self.chainLength, i))
             likeScoresT.append(binom.pmf(self.chain.count("T"), self.chainLength, i))
-            
+
         return likeScoresA, likeScoresC, likeScoresG, likeScoresT
-        
+
             
 class ctmarkov(markov):
     """ Continuous-time Markov chain simulator
@@ -220,7 +220,7 @@ class ctmarkov(markov):
         """ A continuous-time markov chain simulator. 
         
             Takes the 4-state nucleotide State Space and 
-            nucleotide Rate Matrix defined above
+            nucleotide Rate Matrix defined in the base class
         """
         
         # current state if sampling from the stationary distribution
@@ -228,32 +228,63 @@ class ctmarkov(markov):
         
         # current state if sampling from a uniform distribution
         #currState = self.discSamp(self.stateSpace,[1.0/len(self.stateSpace) for x in self.stateSpace])
-        
         self.chain.extend(currState)
         
-        # samples the waiting time from the exponential distribution using the appropriate value from the rateMatrix
         while sum(self.times) < self.chainLength: # stops the chain when the branch length exeeds the sum of the times list
+            # samples the waiting time from the exponential distribution using the appropriate value from the rateMatrix
             timeSample = (random.expovariate(-(self.Q[self.stateSpace.index(currState), self.stateSpace.index(currState)])))
             self.times.append(timeSample)        
+
+            row = self.Q[self.stateSpace.index(currState)] # takes the row from appropriate index from the stateSpace
             
-            x = 1
-            row = self.Q[self.stateSpace.index(currState)] # row from appropriate index from the stateSpace
-            # converts that row to a one-dimensional array of transition probabilities
+            # converts that row variable to a one-dimensional array of transition probabilities
             for i in row:
                 if i < 0:
                     x = i
                 val = (row / x) * -1
-            x = val.tolist() # converts array to list
-            x.pop(self.stateSpace.index(currState)) # removes the negative value (was the diagonal)
-            x.insert(self.stateSpace.index(currState), 0) # replaces the diagonal with prob of "0"
-            #print x
+            probs = val.tolist() # converts array to list
+            probs.pop(self.stateSpace.index(currState)) # removes the negative value (was the diagonal)
+            probs.insert(self.stateSpace.index(currState), 0) # replaces the diagonal with probability of 0
+            if sum(probs) > 1.0:
+                print "error. you've made a dumb"
+            #print probs # testing probs
 
-            currState = self.discSamp(self.stateSpace, x)         
+            currState = self.discSamp(self.stateSpace, probs)         
             self.chain.extend(currState)
             
+            # these are all failed attemp ts at getting the ct chain to work:
+            #currState = self.discSamp(self.stateSpace, self.margProb.margQ[0])                     
+            #probs = self.Q[self.stateSpace.index(currState)] # Grabbing row associated with currState
+            #currState = self.margProb[0][self.discSamp(self.stateSpace,probs)]
+
         return self.chain, self.times
+
+    def tProb(self):
+        """ Creates a transition probability matrix from the Q-Matrix
+        """
         
-        
+        for val in self.Q:
+            row = self.Q[val] # row from appropriate index from the stateSpace
+            # converts that row to a one-dimensional array of transition probabilities
+            for i in row:
+                if i < 0:
+                    sums = (row / i) * -1
+            probs = sums.tolist() # converts array to list
+            probs.pop(val) # removes the negative value (was the diagonal)
+            probs.insert(val, 0) # replaces the diagonal with prob of "0"
+            self.tProb.append(probs)
+
+        # convert self.tProb to a numpy array
+        self.tProb = np.array(self.tProb)
+
+        return self.tProb
+
+
+        #for val in self.Q:
+        #    self.tProb = ([val / list1[val] for val in self.Q[val]])
+        #return [val / list1[val] for val in self.Q]        
+
+
     def margProb(self, chainLength = 10):
         """ Calculates the marginal probabilities of a Q-matrix
             There is a built in function to do this. In Scipy.linalg.exm(Q*v)
@@ -277,17 +308,80 @@ class ctmarkov(markov):
             self.chain.append(run[0])
         return self.chain
 
+
     def stateProb(self):
-        """a work in progress
+        """ a work in progress. Calculates the probabilities across all waiting 
+            times and nucleotide states in the chain
         """
+        # multiply all of the waiting times together
         sum = 1
         for i in self.times:
             sum *= i
-        for i in self.chain:
-            x = self.stateSpace.index[i]
+
+        # multiply all of the chain transition probabilities together
+        for i in self.chain[1:]:
+            sum *= tProb[self.stateSpace.index(self.chain[i - 1]), self.stateSpace.index(i)]
             
-            if i > 0:
-                sum *= i
+            """
+            prevState = self.chain[i - 1]
+            x = self.stateSpace.index(prevState)
+            y = self.stateSpace.index(i)
+            z = tProb[x, y]
+            sum *= z
+            """
+
+        # calculates the probability of the first state in the chain
+        row = self.margProb(chainLength=100)[0]
+        firstProb = row[self.stateSpace.index(self.chain[0])]
+        sum *= firstProb
+
+        # just need to figure out the last value (cdf (1 - t last))
+        x = tProb[self.stateSpace.index(self.chain[-2]), self.stateSpace.index(self.chain[-1])]
+        y = sp.stats.rv_continuous(x)
+        # or is the the waiting times that I need to do this for??
+
+        return sum
+
+
+
+    def contLike(self):
+        """ Continuous-time markov chain likelihood calculator. 
+        """
+
+
+
+    def optimize(k = 4, n = 5, pCurr  = random.random(), diff=0.01):
+        """ Optimization hill climbing function
+        """
+        #pCurr = binom.pmf(k, n, pCurr)
+        pUp = pCurr + diff
+        pDown = pCurr - diff
+        binpCurr = binom.pmf(k, n, pCurr)
+        binpUp = binom.pmf(k, n, pUp)
+        binpDown = binom.pmf(k, n, pDown)
+        
+        while diff > 0.001:  
+                
+            if binpCurr < binpUp:
+                pCurr = pUp
+                binpCurr = binom.pmf(k, n, pCurr)
+                pUp = pCurr + diff
+                binpUp = binom.pmf(k, n, pUp)
+                
+            elif binpCurr > binpDown:
+                pCurr = pDown
+                binpCurr = binom.pmf(k, n, pCurr)
+                pDown = pCurr - diff
+                binpDown = binom.pmf(k, n, pDown)
+
+            else:
+                diff *= 0.5
+                
+            return pCurr
+
+
+
+
         
             
 
