@@ -12,7 +12,7 @@ import random
 import numpy as np
 import scipy as sp
 from scipy.stats import binom
-from scipy.linalg import expm
+from scipy.stats import norm
 
 
 class markov(object):
@@ -28,7 +28,10 @@ class markov(object):
     """    
     
     def __init__(self, stateSpace = ('A', 'C', 'G', 'T'), numSims = 1, chainLength = 10, 
-                matrix = [[0.8, 0.2], [0.3, 0.7]],
+                matrix = [[0.25, 0.25, 0.25, 0.25], 
+                          [0.1, 0.1, 0.1, 0.7], 
+                          [0.9, 0.04, 0.02, 0.02], 
+                          [0.5, 0.2, 0.1, 0.2]],
                 Q = np.array([[-1.916, 0.541, 0.787, 0.588], 
                               [0.148, -1.069, 0.415, 0.506], 
                               [0.286, 0.170, -0.591, 0.135],
@@ -41,7 +44,7 @@ class markov(object):
         self.chain = [] # List to hold the results of the Marcov chain
         self.times = [] # List to hold the probabilities of the Marcov chain
         self.margQ = () # holds the array for the marginal probabilities of a Q-matrix
-        self.tProb = [] # holds the array for the transitional probabilities of a Q-matrix
+        self.tProblist = [] # holds the array for the transitional probabilities of a Q-matrix
         
     def discSamp(self, events, probs):
         """
@@ -70,6 +73,37 @@ class markov(object):
         future = np.matrix(self.matrix) ** n
         return future
 
+    def optimize(self, k = 4, n = 5, pCurr  = random.random(), diff=0.01):
+        """ Optimization hill climbing function
+        """
+        #pCurr = binom.pmf(k, n, pCurr)
+        pUp = pCurr + diff
+        pDown = pCurr - diff
+        binpCurr = binom.pmf(k, n, pCurr)
+        binpUp = binom.pmf(k, n, pUp)
+        binpDown = binom.pmf(k, n, pDown)
+        
+        while diff > 0.001:  
+                
+            if binpCurr < binpUp:
+                pCurr = pUp
+                binpCurr = binom.pmf(k, n, pCurr)
+                pUp = pCurr + diff
+                binpUp = binom.pmf(k, n, pUp)
+                
+            elif binpCurr > binpDown:
+                pCurr = pDown
+                binpCurr = binom.pmf(k, n, pCurr)
+                pDown = pCurr - diff
+                binpDown = binom.pmf(k, n, pDown)
+
+            else:
+                diff *= 0.5
+            
+            return pCurr
+
+
+
 class dtmarkov(markov):
     """ Subclass for running discrete-time markov chains and associated functions
        
@@ -84,6 +118,13 @@ class dtmarkov(markov):
         i = the initial state, which is set to draw a random state to initiate the chain
         step = how many steps to run the simulation for    
         """
+        
+        if len(self.stateSpace) != 2.0:
+            return "error with state space"
+        
+        if len(self.matrix) != 2.0:
+            return "error with matrix"
+            
         i = random.choice(self.stateSpace)
         self.chainLength -= 1 # to accomodate the initial probability choice from tup of 0.5
         self.chain.append(i) # state to start the chain
@@ -148,17 +189,26 @@ class dtmarkov(markov):
         """ Calculates the frequency of the ending values of a chain 
             over a user-defined number of simulations
         """
-        
+        if len(self.chain) != 0:
+            x = raw_input("chain is not empty. are you sure that you want to run the simulator? y/n ").lower()
+            if x == "n":
+                return "the simulation has been terminated"
+            elif x == "y":
+                x = x
+                        
         endVal = [] # list to hold ending values of the simulations 
-        self.chainLength = input("how long do you want each chain in you simulation to be? ")
+        self.chainLength = input("how long do you want each chain in your simulation to be? ")
         for x in range(input("how many times would you like to run the simulator? ")): 
             run = self.dmcSim()
             endVal.append(run[-1])
 
         print "\n", "the frequency of A is: ", float(endVal.count("A") / len(endVal))
-        print "\n", "the frequency of A is: ", float(endVal.count("B") / len(endVal))
+        print "\n", "the frequency of C is: ", float(endVal.count("C") / len(endVal))
+        print "\n", "the frequency of G is: ", float(endVal.count("G") / len(endVal))
+        print "\n", "the frequency of T is: ", float(endVal.count("T") / len(endVal)), "\n"
+    
         return endVal
-        
+            
         
     def sumProb(self):
         """ Sums all of the probabilities for the transition states in the marcov chain
@@ -205,7 +255,7 @@ class dtmarkov(markov):
 
         return likeScoresA, likeScoresC, likeScoresG, likeScoresT
 
-            
+
 class ctmarkov(markov):
     """ Continuous-time Markov chain simulator
         
@@ -237,6 +287,7 @@ class ctmarkov(markov):
 
             row = self.Q[self.stateSpace.index(currState)] # takes the row from appropriate index from the stateSpace
             
+            x = 1
             # converts that row variable to a one-dimensional array of transition probabilities
             for i in row:
                 if i < 0:
@@ -264,25 +315,26 @@ class ctmarkov(markov):
         """
         
         for val in self.Q:
-            row = self.Q[val] # row from appropriate index from the stateSpace
             # converts that row to a one-dimensional array of transition probabilities
-            for i in row:
-                if i < 0:
-                    sums = (row / i) * -1
-            probs = sums.tolist() # converts array to list
-            probs.pop(val) # removes the negative value (was the diagonal)
-            probs.insert(val, 0) # replaces the diagonal with prob of "0"
-            self.tProb.append(probs)
-
+            for i in val:
+                if i < 0.0:
+                    sums = val / i # find the diagonal and divide by it
+                    sums2 = sums * -1.0
+                    probs = sums2.tolist() # converts array to list
+                    list = val.tolist()
+                    probs.pop(list.index(i)) # removes the negative value (was the diagonal)
+                    probs.insert(list.index(i), 0) # replaces the diagonal with prob of "0"
+                    self.tProblist.append(probs)
+        
+        # error check
+        for i in self.tProblist:
+            if sum(i) != 1.0:
+                return "error. you've made a dumb. there is probably an error in your Q matrix"
+        
         # convert self.tProb to a numpy array
-        self.tProb = np.array(self.tProb)
+        self.tProblist = np.array(self.tProblist)
 
-        return self.tProb
-
-
-        #for val in self.Q:
-        #    self.tProb = ([val / list1[val] for val in self.Q[val]])
-        #return [val / list1[val] for val in self.Q]        
+        return self.tProblist
 
 
     def margProb(self, chainLength = 10):
@@ -310,48 +362,69 @@ class ctmarkov(markov):
 
 
     def stateProb(self):
-        """ a work in progress. Calculates the probabilities across all waiting 
+        """ Calculates the probabilities across all waiting 
             times and nucleotide states in the chain
         """
-        # multiply all of the waiting times together
+        if len(self.chain) == 0:
+            return "chain is empty"
+        if len(self.tProblist) == 0:
+            return "run the tProb function, the transition probability matrix is empty"
+        list = []
+        # multiply all of the waiting times together, except the last value
         sum = 1
-        for i in self.times:
+        for i in self.times[:-1]:
             sum *= i
+        # not sure about this. Do I need to convert these waiting times to a probability? and how?
+        list.extend(self.times[:-1])
 
         # multiply all of the chain transition probabilities together
-        for i in self.chain[1:]:
-            sum *= tProb[self.stateSpace.index(self.chain[i - 1]), self.stateSpace.index(i)]
-            
-            """
-            prevState = self.chain[i - 1]
-            x = self.stateSpace.index(prevState)
-            y = self.stateSpace.index(i)
-            z = tProb[x, y]
-            sum *= z
-            """
+        # except the first value
+        for a, b in zip(self.chain, self.chain[1:]):            
+            curr = self.stateSpace.index(b)
+            prev = self.stateSpace.index(a)
+            #print curr, prev            
+            #val = self.tProb()[prev, curr]
+            val = self.tProblist[prev, curr]
+            sum *= val
+            list.append(val)
 
         # calculates the probability of the first state in the chain
         row = self.margProb(chainLength=100)[0]
         firstProb = row[self.stateSpace.index(self.chain[0])]
         sum *= firstProb
+        list.append(firstProb)
 
-        # just need to figure out the last value (cdf (1 - t last))
-        x = tProb[self.stateSpace.index(self.chain[-2]), self.stateSpace.index(self.chain[-1])]
-        y = sp.stats.rv_continuous(x)
-        # or is the the waiting times that I need to do this for??
+        # just need to figure out the last value (1 - cdf (t last))
+        y = 1.0 - (norm.cdf(self.times[-1]))
+        sum *= y        
+        list.append(y)
 
-        return sum
+        return sum, list
 
 
 
     def contLike(self):
         """ Continuous-time markov chain likelihood calculator. 
+            A work in progress
         """
 
 
 
-    def optimize(k = 4, n = 5, pCurr  = random.random(), diff=0.01):
+                
+
+    def optimize_stateProb(self, k = 4, n = 5, pCurr = random.random(), diff=0.01):
+        """ I wanted this to be a function to find the maximum likelihood scores 
+            for the stateProb function, but I'm not sure how to go about doing it.
+        """
+        length = len(self.stateProb()[1])
+        return length
+
+
+
+    def optimize(self, k = 4, n = 5, pCurr  = random.random(), diff=0.01):
         """ Optimization hill climbing function
+            Only here as a blueprint for optimize_stateProb. Delete this one
+            when that function is completed.
         """
         #pCurr = binom.pmf(k, n, pCurr)
         pUp = pCurr + diff
@@ -376,19 +449,14 @@ class ctmarkov(markov):
 
             else:
                 diff *= 0.5
-                
+            
             return pCurr
 
-
-
-
         
-            
-
 
 # stuff to pass the ctmarkov class in an example
 simulation1 = ctmarkov(stateSpace = ("A", "C", "G", "T"))
-print simulation1
+#print simulation1.ctmcSim()
 
 """ IT'S WORKING!!!!
     This is from a continuous time marcov chain simulator
