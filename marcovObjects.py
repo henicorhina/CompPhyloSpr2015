@@ -11,6 +11,7 @@ from __future__ import division
 import random
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 from scipy.stats import binom
 from scipy.stats import norm
 
@@ -76,6 +77,7 @@ class markov(object):
         future = np.matrix(self.matrix) ** n
         return future
 
+
     def optimize(self, k = 4, n = 5, pCurr  = random.random(), diff=0.01):
         """ Optimization hill climbing function
         """
@@ -89,16 +91,18 @@ class markov(object):
         while diff > 0.001:  
                 
             if binpCurr < binpUp:
-                pCurr = pUp
-                binpCurr = binom.pmf(k, n, pCurr)
-                pUp = pCurr + diff
-                binpUp = binom.pmf(k, n, pUp)
+                while binpCurr < binpUp:
+                    pCurr = pUp
+                    binpCurr = binom.pmf(k, n, pCurr)
+                    pUp = pCurr + diff
+                    binpUp = binom.pmf(k, n, pUp)
                 
             elif binpCurr > binpDown:
-                pCurr = pDown
-                binpCurr = binom.pmf(k, n, pCurr)
-                pDown = pCurr - diff
-                binpDown = binom.pmf(k, n, pDown)
+                while binpCurr > binpDown:
+                    pCurr = pDown
+                    binpCurr = binom.pmf(k, n, pCurr)
+                    pDown = pCurr - diff
+                    binpDown = binom.pmf(k, n, pDown)
 
             else:
                 diff *= 0.5
@@ -368,6 +372,7 @@ class ctmarkov(markov):
             times and nucleotide states in the chain
             using the format: 
             P(nuc1)*P(t1)*P(nuc2|nuc1)...*P(1 - cdf(tlast))
+            This is useful for stochastic character mapping
         """
         if len(self.chain) == 0:
             return "chain is empty"
@@ -404,64 +409,75 @@ class ctmarkov(markov):
         sum *= y        
         list.append(y)
 
-        return sum, list, sum(list)
+        return sum, list
 
 
 
     def contLike(self):
         """ Continuous-time markov chain likelihood calculator. 
             A work in progress
+            2 * difference in log(likelihood) = chi-squared
+            degrees of freedom
         """
+        list = []
+        for x in self.nucStateProbs()[1]:
+            
+            list.append()
 
 
-
-                
-
-    def optimize_stateProb(self, k = 4, n = 5, pCurr = random.random(), diff=0.01):
-        """ I wanted this to be a function to find the maximum likelihood scores 
-            for the stateProb function, but I'm not sure how to go about doing it.
+    def optimize(self, diff=0.01):
+        """ Function to find the maximum likelihood for a continuous time markov chain
+            An optimization hill climbing function
+            Attributes:
+                diff = value steps by which the function goes up or down to find the maximum
         """
-        #pList = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
-        likeScores = []
-        for i in self.nucStateProbs()[1]:
-            likeScores.append(binom.pmf(i))
-        #length = len(self.stateProb()[1])
-        return likeScores
+        if len(self.chain) == 0: # error check
+            return "chain is empty, run ctmcSim"
 
+        pCurr = self.chainLength
+        values = [] # list to hold the intermediate values while optimizing
+        # first and last are the stateSpace index values for the first and last states of the chain
+        first = self.stateSpace.index(self.chain[0])
+        last = self.stateSpace.index(self.chain[-1])
 
-
-    def optimize(self, k = 4, n = 5, pCurr  = random.random(), diff=0.01):
-        """ Optimization hill climbing function
-            Only here as a blueprint for optimize_stateProb. Delete this one
-            when that function is completed.
-        """
-        #pCurr = binom.pmf(k, n, pCurr)
         pUp = pCurr + diff
         pDown = pCurr - diff
-        binpCurr = binom.pmf(k, n, pCurr)
-        binpUp = binom.pmf(k, n, pUp)
-        binpDown = binom.pmf(k, n, pDown)
-        
-        while diff > 0.001:  
-                
-            if binpCurr < binpUp:
-                pCurr = pUp
-                binpCurr = binom.pmf(k, n, pCurr)
-                pUp = pCurr + diff
-                binpUp = binom.pmf(k, n, pUp)
-                
-            elif binpCurr > binpDown:
-                pCurr = pDown
-                binpCurr = binom.pmf(k, n, pCurr)
-                pDown = pCurr - diff
-                binpDown = binom.pmf(k, n, pDown)
+        # sample the appropriate transition value from the marginal probability matrix
+        bpCurr = self.margProb(chainLength=pCurr)[first, last]
+        bpUp = self.margProb(chainLength=pUp)[first, last]
+        bpDown = self.margProb(chainLength=pDown)[first, last]
+        values.append(bpCurr)
+
+        while diff > 0.001: # runs the function until the diff drops below 0.001. Adjust if needed
+
+            if bpCurr < bpUp: # going up!
+                while bpCurr < bpUp: # runs the function as long as you're still going up.
+                    pCurr = pUp
+                    pUp = pCurr + diff
+                    bpCurr = self.margProb(chainLength=pCurr)[first, last]
+                    bpUp = self.margProb(chainLength=pUp)[first, last]
+                    values.append(bpCurr)
+                    if len(values) > 1000:
+                        return bpCurr, values
+
+            elif bpCurr > bpDown: # going down!
+                while bpCurr > bpDown:
+                    pCurr = pDown
+                    bpCurr = self.margProb(chainLength=pCurr)[first, last]
+                    values.append(bpCurr)
+                    pDown = pCurr - diff
+                    bpDown = self.margProb(chainLength=pDown)[first, last]
+                    if len(values) > 1000:
+                        return bpCurr, values
 
             else:
                 diff *= 0.5
-            
-            return pCurr
 
-        
+            plt.plot(values)
+            plt.show
+
+            return bpCurr, values
+
 
 # stuff to pass the ctmarkov class in an example
 simulation1 = ctmarkov(stateSpace = ("A", "C", "G", "T"))
