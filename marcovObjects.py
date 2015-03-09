@@ -44,6 +44,7 @@ class markov(object):
         self.Q = Q # A Q-matrix
         self.chain = [] # List to hold the results of the Marcov chain
         self.times = [] # List to hold the probabilities of the Marcov chain
+        self.multChains = [] # list for multiple chains from multCTMC simulator
         self.margQ = () # holds the array for the marginal probabilities of a Q-matrix
         self.tProblist = [] # holds the array for the transitional probabilities of a Q-matrix
         self.tProb() # creates a transitional probability matrix
@@ -272,14 +273,14 @@ class ctmarkov(markov):
         RateMatrix = Q-Matrix of transition probabilities for a continuous markov chain        
     """
 
-    
-    
     def ctmcSim(self):
         """ A continuous-time markov chain simulator. 
         
             Takes the 4-state nucleotide State Space and 
             nucleotide Rate Matrix defined in the base class
         """        
+        self.chain = [] # clears the chain list
+        self.times = [] # clears the waiting times list
         # current state if sampling from the stationary distribution
         currState = self.discSamp(self.stateSpace, self.margProb(chainLength=100)[0])
         # current state if sampling from a uniform distribution
@@ -305,11 +306,7 @@ class ctmarkov(markov):
 
             currState = self.discSamp(self.stateSpace, probs) # sample a new current state and append
             self.chain.extend(currState)
-            
-            # these are all failed attemp ts at getting the ct chain to work:
-            #currState = self.discSamp(self.stateSpace, self.margProb.margQ[0])                     
-            #probs = self.Q[self.stateSpace.index(currState)] # Grabbing row associated with currState
-            #currState = self.margProb[0][self.discSamp(self.stateSpace,probs)]
+        
         return self.chain, self.times
 
 
@@ -351,32 +348,22 @@ class ctmarkov(markov):
         
         return self.margQ
 
-        # failed attempts:
-        #self.margQ = sp.linalg.expm(self.Q*chainLength)
-        #return self.margQ
-
-    def multSimsCTMC(self):
-        """ runs multiple simulations of the continuous time markov simulator
-    
-            Attributes:
-            numSims = number of simulations to be run. defined in base class
-        """
-        for x in range(self.numSims): 
-            run = self.ctmcSim()
-            self.chain.append(run[0])
-        return self.chain
-
 
     def nucStateProbs(self):
         """ Calculates the probabilities across all waiting 
-            times and nucleotide states in the chain
-            using the format: 
+            times (exact probabilities) and nucleotide states 
+            in the chain using the format: 
             P(nuc1)*P(t1)*P(nuc2|nuc1)...*P(1 - cdf(tlast))
+            
             This is useful for stochastic character mapping
+            
+            Uses a 'site-independent' model, where the marginal
+            probability across the entire data set is simply the 
+            product of the site probabilities.
         """
-        if len(self.chain) == 0:
+        if len(self.chain) == 0: # error check
             return "chain is empty"
-        if len(self.tProblist) == 0:
+        if len(self.tProblist) == 0: # error check
             return "run the tProb function, the transition probability matrix is empty"
         
         list = [] # blank list for probabilities
@@ -412,10 +399,8 @@ class ctmarkov(markov):
         return sum, list
 
 
-
-    def contLike(self):
+    def contLike(self): # A work in progress
         """ Continuous-time markov chain likelihood calculator. 
-            A work in progress
             2 * difference in log(likelihood) = chi-squared
             degrees of freedom
         """
@@ -473,15 +458,47 @@ class ctmarkov(markov):
             else:
                 diff *= 0.5
 
-            plt.plot(values)
-            plt.show
+            #plt.plot(values)
+            #plt.show
 
             return bpCurr, values
 
 
+    def multSimsCTMC(self):
+        """ runs multiple simulations of the continuous time markov simulator
+    
+            Attributes:
+            numSims = number of simulations to be run. defined in base class
+        """
+        if self.numSims == 1: #error check
+            return "you are only running one simulation!"
+        
+        for x in range(self.numSims):
+            self.multChains.append(self.ctmcSim()[0])
+            
+        return self.multChains
+
+    
+    def multOptimize(self):
+        """ function to optimize likelihoods from multiple chains.
+        """
+        maxLikes = [] # chain for maximum likelihoods
+        counter = 1
+        for i in self.multChains:
+            self.chain = i
+            maxLikes.append(self.optimize()[0])
+            counter += 1
+            print "\r{0}".format((counter / len(self.multChains))*100), "% done",
+            
+
+        
+        return maxLikes
+            
+    
+
 # stuff to pass the ctmarkov class in an example
-simulation1 = ctmarkov(stateSpace = ("A", "C", "G", "T"))
-#print simulation1.ctmcSim()
+simulation = ctmarkov(stateSpace = ("A", "C", "G", "T"))
+#print simulation.ctmcSim()
 
 """ IT'S WORKING!!!!
     This is from a continuous time marcov chain simulator
@@ -489,3 +506,29 @@ simulation1 = ctmarkov(stateSpace = ("A", "C", "G", "T"))
 [3.6766402766957738, 1.0117011882308808, 0.28369755057830681, 0.78290088271085601, 
 0.0084820317566074652, 0.28676516298665916, 0.13703870620384057, 5.4660886053329039])
 """
+
+
+# Simulate one site. Estimate branch length.
+
+simulation1 = ctmarkov(chainLength=1)
+#print simulation1.ctmcSim()
+#print simulation1.optimize()[0]
+# branch length estimation for branch length of 1 = 0.407506652587
+
+
+# Simulate several hundred sites. Estimate branch length.
+simulation2 = ctmarkov(chainLength = 0.9, numSims=200)
+print simulation2.multSimsCTMC() # prints the chains
+X = simulation2.multOptimize() # simulates 200 branch lengths
+plt.plot(X.sort()) # plots the sorted branch lengths
+
+
+# Run the above simulations repeatedly and examine variation in the estimated branch lengths.
+
+"""
+it appears to me that the after a few hundred simulations of branch lengths, 
+only the highest ~10 branch length estimations appeared to approach the
+actual branch length. The plot of the branch length estimations appears
+to roughly follow the exponential distribution
+"""
+
