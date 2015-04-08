@@ -452,6 +452,7 @@ class ctmarkov(markov):
             
             return pCurr
 
+
         
 
 # stuff to pass the ctmarkov class in an example
