@@ -10,9 +10,7 @@ to link nodes to form a tree. Use this as a springboard to start thinking about:
    root node? This will require recursion.
 """
 from marcovObjects import ctmarkov
-import matplotlib.pyplot as plt
 import numpy as np
-import scipy as sp
 
 # ---> Defining Node and Tree classes <---
 
@@ -117,6 +115,7 @@ class Tree(object):
         self.root.seq = []
         self.totalTreeLength = 0 # counter for total tree length calculator
         self.setModels(self.root)
+        self.alignmentMatrix = []
 
     # Write a recursive function that takes the root node as its only argument and
     # prints out all the names of the terminal nodes in the tree. Due next Tues (3/17).
@@ -163,6 +162,7 @@ class Tree(object):
         A method to calculate and return total tree length.
         Pass it the root of the tree. 
         """
+        #self.totalTreeLength = 0 # clears the total tree length sum (not working)
         if len(node.children) > 0: # checks if the node has children
             self.totalTreeLength += node.brl
             for child in node.children: 
@@ -180,8 +180,6 @@ class Tree(object):
         """
         A method of a Tree object that will print out the Tree as a 
         parenthetical string (Newick format).
-        There is still a random comma after tips that have no sister, which I 
-        am working on getting rid of...
         """
         newickString = "(" # the start of the string
         
@@ -196,16 +194,17 @@ class Tree(object):
         else:
             for child in node.children: 
                 newickString += self.newick(child) # runs the function for all the children
-                if node.children[-1] == child: # supposedly checks if the previous child is a child
-                    newickString = newickString 
+                if node.children[-1] == child: # supposedly checks if the previous node is a child
+                    pass 
                 else:
-                    newickString += "," 
+                    newickString += "," # adds a comma after, to separate sister clades
             if node.brl == 0: # checks if the node is the root
                 newickString += ")" 
             else:
-                newickString += ")"+ str(node.brl) # otherwise, adds the brl for the ancestor
+                newickString += ")"+ ":" + str(node.brl) # otherwise, adds the brl for the ancestor
             
-            return newickString
+        return newickString.replace(",(","(") # removes the errant comma before non-sister clades
+
         
         
     # Now, let's write a recursive function to simulate sequence evolution along a
@@ -222,19 +221,64 @@ class Tree(object):
         """
         This method of a Tree object defines a ctmc object associated with all
         nodes that have a branch length (i.e., all but the root).
+        I'm not sure that I understand this. We imported the ctmc functions 
+        above, so they can be called whenever we want. We also already have 
+        the ctmcs ("seq") within the node constructor
         """
-
 
     def simulate(self,node):
         """
         This method simulates evolution along the branches of a tree, taking
         the root node as its initial argument.
         """
+        if node.brl == 0: # checks if the node is the root
+            for child in node.children: 
+                self.simulate(child) # call simulate again
+        elif len(node.children) > 0: # checks if the node has children
+            node.seq = ctmarkov(chainLength = node.brl).ctmcSim()[0]
+            for child in node.children: 
+                self.simulate(child) # call simulate again
+        else:        
+            node.seq = ctmarkov(chainLength = node.brl).ctmcSim()[0]
+        
+        """ Failed attempts...
+        for child in node.children:
+            node.seq = ctmarkov(chainLength = node.brl).ctmcSim()[0]
+        
+        
+        if len(node.children) == 0: # checks if the node is a tip
+            node.seq = ctmarkov(chainLength = node.brl).ctmcSim()[0]
+            print node.name, ": ", node.seq
+        else:
+            for child in node.children: 
+                self.setModels(child) # runs the function for all the children
+            #if node.brl == 0: # checks if the node is the root
+            #    pass
+            #else:
+            #    for child in node.children: 
+            #        self.setModels(child) # runs the function for all the children                                   
+        """
+
              
     def printSeqs(self,node):
         """
         This method prints out the names of the tips and their associated
         sequences as an alignment (matrix).
         """
+        
+        if len(node.children) > 0: # checks if the node has children
+            for child in node.children: 
+                self.printSeqs(child) # call printSeqs again
+        else: # appends the node name and sequence to a list 
+            self.alignmentMatrix.append(node.name)
+            self.alignmentMatrix.append(node.seq)
+
+        print self.alignmentMatrix
+        return self.alignmentMatrix
+
+
+
+
+
 
         
