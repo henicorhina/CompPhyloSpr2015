@@ -9,19 +9,24 @@ to link nodes to form a tree. Use this as a springboard to start thinking about:
    (e.g., ((spA,spB),spC)) if the only argument passed to the function is a
    root node? This will require recursion.
 """
+from __future__ import division
 from marcovObjects import ctmarkov
 import numpy as np
 
 # ---> Defining Node and Tree classes <---
 
 class Node:
-    def __init__(self,name="",parent=None,children=None):
+    def __init__(self,name="",parent=None,children=None, nodeLike=None):
         self.name = name
         self.parent = None
         if children is None:
             self.children = []
         else:
             self.children = children
+        if nodeLike is None:
+            self.nodeLike = []
+        else:
+            self.nodeLike = nodeLike
         
         
         
@@ -113,6 +118,12 @@ class Tree(object):
         self.spC.seq = []
         self.ancAB.seq = []
         self.root.seq = []
+        # node likelihoods.
+        self.spA.nodeLike = []
+        self.spB.nodeLike = []
+        self.spC.nodeLike = []
+        self.ancAB.nodeLike = []
+        self.root.nodeLike = []        
         self.totalTreeLength = 0 # counter for total tree length calculator
         self.setModels(self.root)
         self.alignmentMatrix = []
@@ -278,7 +289,55 @@ class Tree(object):
 
 
 
-
+    def treeLike(self,node):
+        """
+        Calculates the likelihood of a tree when passed the root.
+        Need to have sequence data for the tips.
+        """
+        Nucleotides = ['A', 'C', 'G', 'T']
+        # stationary frequencies of the nucleotides
+        stFreqA = 0.3
+        stFreqC = 0.4
+        stFreqG = 0.2
+        stFreqT = 0.1
+        
+        if len(node.children) > 0: # checks if the node has children
+            for child in node.children: 
+                if node.seq == 0: # error check -> need tip sequence data
+                    return "error, your sequence simulations are empty"
+                self.treeLike(child) # call treeLike again for all children
+        elif len(node.children) == 0: # checks if the node is a tip
+            P = ctmarkov().margProb(chainLength=node.brl) # creates the matrix of marginal probabilities
+            for i in Nucleotides: # converts sequence data to 0 & 1 
+                if i == node.seq[-1]:
+                    node.nodeLike.append(1)
+                else:
+                    node.nodeLike.append(0)
+        elif len(node.children) > 0 and node.brl == 0: # checks if node is internal
+            P = ctmarkov().margProb(chainLength=node.brl)
+            for i in Nucleotides:
+                # all the little calculations
+                val = (1) # placeholder, this needs to be the total value to append
+                node.nodeLike.append(val)
+        else: # should be the root
+            totalLike = stFreqA # placeholder            
+            
+            return totalLike
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
 
         
+
+
+
+
+
+
