@@ -11,8 +11,9 @@ to link nodes to form a tree. Use this as a springboard to start thinking about:
 """
 from __future__ import division
 from marcovObjects import ctmarkov
+from cStringIO import StringIO
+from Bio import Phylo
 import math
-import numpy as np
 
 # ---> Defining Node and Tree classes <---
 
@@ -223,7 +224,16 @@ class Tree(object):
             
         return newickString.replace(",(","(") # removes the errant comma before non-sister clades
 
-        
+    def treeRead(self): 
+        """
+        I realize that you probably wanted us to write this one out by hand, but I 
+        just ran out of time. These native IO and Biopython functions work quite well
+        Can also pass Phylo .dnd files
+        """
+        treedata = self.newick(self.root)
+        handle = StringIO(treedata)
+        tree = Phylo.read(handle, "newick")       
+        return tree
         
     # Now, let's write a recursive function to simulate sequence evolution along a
     # tree. This amounts to simply simulating evolution along each branch 
