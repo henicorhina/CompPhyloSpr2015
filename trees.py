@@ -11,6 +11,7 @@ to link nodes to form a tree. Use this as a springboard to start thinking about:
 """
 from __future__ import division
 from marcovObjects import ctmarkov
+import math
 import numpy as np
 
 # ---> Defining Node and Tree classes <---
@@ -124,6 +125,12 @@ class Tree(object):
         self.spC.nodeLike = []
         self.ancAB.nodeLike = []
         self.root.nodeLike = []        
+        # I just need some lists for holing 0/1 tip data
+        self.spA.list = []
+        self.spB.list = []
+        self.spC.list = []
+        self.ancAB.list = []
+
         self.totalTreeLength = 0 # counter for total tree length calculator
         self.setModels(self.root)
         self.alignmentMatrix = []
@@ -232,9 +239,8 @@ class Tree(object):
         """
         This method of a Tree object defines a ctmc object associated with all
         nodes that have a branch length (i.e., all but the root).
-        I'm not sure that I understand this. We imported the ctmc functions 
-        above, so they can be called whenever we want. We also already have 
-        the ctmcs ("seq") within the node constructor
+
+        I have the ctmcs ("seq") within the node constructor
         """
 
     def simulate(self,node):
@@ -289,45 +295,62 @@ class Tree(object):
 
 
 
-    def treeLike(self,node):
+    def treeLike(self,node,stFreqA = 0.3, stFreqC = 0.4, stFreqG = 0.2, stFreqT = 0.1):
         """
         Calculates the likelihood of a tree when passed the root.
-        Need to have sequence data for the tips.
+        Need to have sequence data for the tips, which can be done by running
+        the 'simulate' function.
+        Stationary frequencies of the nucleotides can be user-defined
         """
-        Nucleotides = ['A', 'C', 'G', 'T']
-        # stationary frequencies of the nucleotides
-        stFreqA = 0.3
-        stFreqC = 0.4
-        stFreqG = 0.2
-        stFreqT = 0.1
-        
-        if len(node.children) > 0: # checks if the node has children
+        Nucleotides = ['A', 'C', 'G', 'T'] # list of nucleotides for indexing
+
+        if node.brl == 0: # the root
             for child in node.children: 
-                if node.seq == 0: # error check -> need tip sequence data
-                    return "error, your sequence simulations are empty"
-                self.treeLike(child) # call treeLike again for all children
+                self.treeLike(child) # call treeLike again for all children               
+            if len(node.children[0].nodeLike) == 0: # I can't remember why I did this (but it works!)
+                pass # the perils of late-night coding
+            else:
+                for i in Nucleotides: # multiplies the node likelihoods from the children
+                    val = node.children[0].nodeLike[Nucleotides.index(i)] * node.children[1].nodeLike[Nucleotides.index(i)]
+                    node.nodeLike.append(val)
+                # adds up (stationary frequencies * conditional probabilities of the root)
+                totalLike = (stFreqA * node.nodeLike[0]) + (stFreqC * node.nodeLike[1]) + (stFreqG * node.nodeLike[2]) + (stFreqT * node.nodeLike[3]) 
+                return "the log likelihood:", math.log10(totalLike), "the likelihood:", totalLike # returns the log likelihood for the tree and the likelihood
+        
+        elif len(node.children) > 0 and node.brl > 0: # checks if node is internal
+            for child in node.children: 
+                self.treeLike(child) # call treeLike again for all children               
+            if len(node.children[0].nodeLike) == 0:
+                pass
+            else:
+                P = ctmarkov().margProb(chainLength=node.brl) # calculates the marginal probabilities for a given branch length
+                for i in Nucleotides: # multiplies the node likelihoods from the children
+                    val = node.children[0].nodeLike[Nucleotides.index(i)] * node.children[1].nodeLike[Nucleotides.index(i)]
+                    node.list.append(val)
+                for i in node.list:
+                    val = (P[node.list.index(i), 0] * node.list[0]) + (P[node.list.index(i), 1] * node.list[1]) + (P[node.list.index(i), 2] * node.list[2]) + (P[node.list.index(i), 3] * node.list[3])
+                    node.nodeLike.append(val)
+        
         elif len(node.children) == 0: # checks if the node is a tip
             P = ctmarkov().margProb(chainLength=node.brl) # creates the matrix of marginal probabilities
+            if len(node.seq) == 0:
+                print "the nodes have no sequence data. Run the simulate function"
+                return ""
             for i in Nucleotides: # converts sequence data to 0 & 1 
-                if i == node.seq[-1]:
-                    node.nodeLike.append(1)
+                if i == node.seq[-1]: # checks the last nucleotide from the chain
+                    node.list.append(1)
                 else:
-                    node.nodeLike.append(0)
-        elif len(node.children) > 0 and node.brl == 0: # checks if node is internal
-            P = ctmarkov().margProb(chainLength=node.brl)
-            for i in Nucleotides:
-                # all the little calculations
-                val = (1) # placeholder, this needs to be the total value to append
+                    node.list.append(0)
+            for i in node.list:
+                # this calculates half of the node likelihoods for each parent of the tip
+                # will need to be multiplied together to get the parent likelihood
+                # I know that this next line is too repetitive, but I can't figure out a way to shorten it
+                val = (P[node.list.index(i), 0] * node.list[0]) + (P[node.list.index(i), 1] * node.list[1]) + (P[node.list.index(i), 2] * node.list[2]) + (P[node.list.index(i), 3] * node.list[3])
                 node.nodeLike.append(val)
-        else: # should be the root
-            totalLike = stFreqA # placeholder            
-            
-            return totalLike
+        else:
+            return "this shouldn't happen"
         
-        
-        
-        
-        
+  
         
         
         
