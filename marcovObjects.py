@@ -311,7 +311,8 @@ class ctmarkov(markov):
 
 
     def tProb(self):
-        """ Creates a transition probability matrix from the Q-Matrix
+        """ 
+        Creates a transition probability matrix from the Q-Matrix
         """
         
         for val in self.Q:
@@ -332,7 +333,7 @@ class ctmarkov(markov):
                 return "error. you've made a dumb. there is probably an error in your Q matrix"
         
         # convert self.tProb to a numpy array
-        self.tProblist = np.array(self.tProblist)
+        #self.tProblist = np.array(self.tProblist)
 
         return self.tProblist
 
@@ -488,16 +489,13 @@ class ctmarkov(markov):
             self.chain = i
             maxLikes.append(self.optimize()[0])
             counter += 1
-            print "\r{0}".format((counter / len(self.multChains))*100), "% done",
-            
-
-        
+            print "\r{0}".format((counter / len(self.multChains))*100), "% done",        
         return maxLikes
             
     
 
 # stuff to pass the ctmarkov class in an example
-simulation = ctmarkov(stateSpace = ("A", "C", "G", "T"))
+#simulation = ctmarkov(stateSpace = ("A", "C", "G", "T"))
 #print simulation.ctmcSim()
 
 """ IT'S WORKING!!!!
@@ -510,17 +508,18 @@ simulation = ctmarkov(stateSpace = ("A", "C", "G", "T"))
 
 # Simulate one site. Estimate branch length.
 
-simulation1 = ctmarkov(chainLength=1)
+#simulation1 = ctmarkov(chainLength=1)
 #print simulation1.ctmcSim()
 #print simulation1.optimize()[0]
 # branch length estimation for branch length of 1 = 0.407506652587
 
 
 # Simulate several hundred sites. Estimate branch length.
-simulation2 = ctmarkov(chainLength = 0.9, numSims=200)
-print simulation2.multSimsCTMC() # prints the chains
-X = simulation2.multOptimize() # simulates 200 branch lengths
-plt.plot(X.sort()) # plots the sorted branch lengths
+#simulation2 = ctmarkov(chainLength = 0.9, numSims=200)
+#print simulation2.multSimsCTMC() # prints the chains
+#X = simulation2.multOptimize() # simulates 200 branch lengths
+#Y = X.sort()
+#plt.plot(Y) # plots the sorted branch lengths
 
 
 # Run the above simulations repeatedly and examine variation in the estimated branch lengths.
@@ -531,4 +530,33 @@ only the highest ~10 branch length estimations appeared to approach the
 actual branch length. The plot of the branch length estimations appears
 to roughly follow the exponential distribution
 """
+
+
+"""
+# branch length estimator outline from class
+def estBrl(self, initBrl, diff, threshold):
+    def likeCalc():
+        currLike = 1
+        for i in 1, ..., nsites:
+            currLike *= likelihood of site 
+    
+    likeCalc for initBrl - diff  #(check to make sure it is greater than zero)
+    likeCalc for initBrl + diff
+
+# if pUp > current likelihood, keep calling same function (recursion!!)
+
+if pUp > pCurr:
+    initialBrl = optimize(pUp, diff, threshold)
+    
+elif pDown > pCurr:
+    initialBrl = optimize(pDown, diff, threshold)
+
+else:
+    diff *= 0.5
+
+
+return inital branchlength
+"""
+
+
 
